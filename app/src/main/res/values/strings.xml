@@ -7,6 +7,13 @@
     <!-- Errors -->
     <string name="err_spotify_disconnected">"Spotify is not Connected. Use one of the 'connect' buttons"</string>
     <string name="err_generic_toast">An error has occurred. Check the logs to know more.</string>
+    <string name="warning_need_token">You need to request an access token first</string>
+    <string name="code">Code: %1$s</string>
+    <string name="token">Access Token: %1$s</string>
+
+    <!--scheme & host-->
+    <string name="com_spotify_sdk_redirect_scheme">spotify-sdk</string>
+    <string name="com_spotify_sdk_redirect_host">auth</string>
 
     <!-- Connect Auth -->
     <string name="connect">Connect</string>

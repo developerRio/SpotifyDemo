@@ -44,6 +44,12 @@ dependencies {
     implementation project(path: ':spotify-app-remote-release-0.7.0')
     implementation "com.google.code.gson:gson:2.8.5"
 
+    // spotify auth
+    implementation 'com.spotify.android:auth:1.2.3'
+
+    // okHttp3 for auth request
+    implementation 'com.squareup.okhttp3:okhttp:3.12.3'
+
     //Material design
     implementation "com.google.android.material:material:1.2.0-alpha05"
 
