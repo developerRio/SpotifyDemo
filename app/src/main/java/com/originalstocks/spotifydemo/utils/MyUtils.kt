@@ -2,6 +2,7 @@ package com.originalstocks.spotifydemo.utils
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import com.originalstocks.spotifydemo.R
 
@@ -15,4 +16,12 @@ fun getRedirectUri(context: Context): Uri {
         .authority(context.getString(R.string.com_spotify_sdk_redirect_host))
         .appendPath("tera-clock-callback")
         .build()
+}
+
+fun logError(tag: String, throwable: Throwable) {
+    Log.e(tag, "", throwable)
+}
+
+fun logMessage(tag: String, msg: String) {
+    Log.d(tag, msg)
 }

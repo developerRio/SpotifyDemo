@@ -3,20 +3,28 @@ package com.originalstocks.spotifydemo.activity
 import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.google.gson.GsonBuilder
 import com.originalstocks.spotifydemo.R
 import com.originalstocks.spotifydemo.broadcastReceiver.SpotifyBroadcastReceiver
 import com.originalstocks.spotifydemo.utils.getRedirectUri
+import com.originalstocks.spotifydemo.utils.logError
+import com.originalstocks.spotifydemo.utils.logMessage
 import com.originalstocks.spotifydemo.utils.showToast
 import com.spotify.android.appremote.api.ConnectionParams
 import com.spotify.android.appremote.api.Connector
 import com.spotify.android.appremote.api.ContentApi
 import com.spotify.android.appremote.api.SpotifyAppRemote
 import com.spotify.android.appremote.api.error.SpotifyDisconnectedException
-import com.spotify.protocol.types.Image
-import com.spotify.protocol.types.PlayerState
-import com.spotify.protocol.types.Track
+import com.spotify.protocol.types.*
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.coroutines.*
+import kotlin.coroutines.suspendCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 
 class MainActivity : AppCompatActivity() {
@@ -25,7 +33,10 @@ class MainActivity : AppCompatActivity() {
     private var connectionParams: ConnectionParams? = null
     private var spotifyBroadcastReceiver = SpotifyBroadcastReceiver()
     val spotifyMyPlaylistURI = "spotify:playlist:0E6OYw9qGFgaKQPJqZVhHy"
-
+    private val errorCallback = { throwable: Throwable -> logError(TAG, throwable) }
+    private val viewModelJob = Job()
+    private val coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Main)
+    private val mGson = GsonBuilder().setPrettyPrinting().create()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -47,7 +58,7 @@ class MainActivity : AppCompatActivity() {
             registerReceiver(spotifyBroadcastReceiver, intentFilter)
 
             connectionParams =
-                ConnectionParams.Builder(getString(R.string.client_id))             // TODO: Please update your Client ID in strings.xml
+                ConnectionParams.Builder(getString(R.string.client_id))  // TODO: Please update your Client ID in strings.xml
                     .setRedirectUri(getRedirectUri(this).toString())
                     .showAuthView(true)
                     .build()
@@ -99,6 +110,7 @@ class MainActivity : AppCompatActivity() {
             mSpotifyAppRemote!!.playerApi.subscribeToPlayerState()
                 .setEventCallback { playerState ->
                     updateTrackCoverArt(playerState)
+
                     if (playerState.isPaused) {
                         Log.i(TAG, "player_state = " + playerState.track.name)
 
@@ -107,36 +119,10 @@ class MainActivity : AppCompatActivity() {
                 .setErrorCallback { throwable ->
                     Log.e(TAG, throwable.message.toString())
                 }
-            Log.i(TAG, "isSpotifyInstalled = " + "")
 
         }
 
 
-    }
-
-
-    private fun updateTrackCoverArt(playerState: PlayerState) {
-        // Get image from track
-        assertAppRemoteConnected()
-            .imagesApi
-            .getImage(playerState.track.imageUri, Image.Dimension.LARGE)
-            .setResultCallback { bitmap ->
-                Log.d(
-                    TAG,
-                    "ImageURI = " + playerState.track.imageUri + " dimens = " + bitmap.width + " " + bitmap.height
-                )
-                coverArtImageView.setImageBitmap(bitmap)
-                trackNameTextView.text = playerState.track.name
-            }
-    }
-
-    private fun setResponse(text: String) {
-        runOnUiThread {
-            /*val responseView = findViewById<TextView>(R.id.response_text_view)
-            responseView.text = text*/
-            Log.d(TAG, "setResponse = $text")
-
-        }
     }
 
     override fun onStop() {
@@ -154,6 +140,33 @@ class MainActivity : AppCompatActivity() {
         Log.e(TAG, getString(R.string.err_spotify_disconnected))
         throw SpotifyDisconnectedException()
     }
+
+    private fun updateTrackCoverArt(playerState: PlayerState) {
+        // Get image from track
+        assertAppRemoteConnected()
+            .imagesApi
+            .getImage(playerState.track.imageUri, Image.Dimension.LARGE)
+            .setResultCallback { bitmap ->
+                Log.d(
+                    TAG,
+                    "ImageURI = " + playerState.track.imageUri + " dimens = " + bitmap.width + " " + bitmap.height
+                )
+                coverArtImageView.setImageBitmap(bitmap)
+                trackNameTextView.text = playerState.track.name
+            }
+    }
+
+    private fun updatePlayPauseButton(playerState: PlayerState) {
+        // Invalidate play / pause
+        if (playerState.isPaused) {
+            //play_pause_button.setImageResource(R.drawable.btn_play)
+        } else {
+            //play_pause_button.setImageResource(R.drawable.btn_pause)
+        }
+    }
+
+
+
 
 
 }
