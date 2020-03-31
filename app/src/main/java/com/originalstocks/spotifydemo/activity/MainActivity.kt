@@ -33,10 +33,7 @@ class MainActivity : AppCompatActivity() {
     private var connectionParams: ConnectionParams? = null
     private var spotifyBroadcastReceiver = SpotifyBroadcastReceiver()
     val spotifyMyPlaylistURI = "spotify:playlist:0E6OYw9qGFgaKQPJqZVhHy"
-    private val errorCallback = { throwable: Throwable -> logError(TAG, throwable) }
-    private val viewModelJob = Job()
-    private val coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Main)
-    private val mGson = GsonBuilder().setPrettyPrinting().create()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)

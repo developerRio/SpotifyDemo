@@ -29,6 +29,7 @@ class LoginActivity : AppCompatActivity() {
     private var mAccessCode: String? = null
     private var mCallUserData: Call? = null
     private var mCallUserPlaylist: Call? = null
+    private var mCallUserFavorite: Call? = null
     val AUTH_TOKEN_REQUEST_CODE = 0x10
     val AUTH_CODE_REQUEST_CODE = 0x11
 
@@ -111,14 +112,106 @@ class LoginActivity : AppCompatActivity() {
             @Throws(IOException::class)
             override fun onResponse(call: Call?, response: Response) {
                 try {
-                    val jsonObject = JSONObject(response.body()!!.string())
-                    Log.i(TAG, "onSuccessPlaylistsResponse = $jsonObject")
-                    parsePlaylistJSONData(jsonObject)
+                    val rootObject = JSONObject(response.body()!!.string())
+                    Log.i(TAG, "onSuccessPlaylistsResponse = $rootObject")
+                    val itemsArray: JSONArray = rootObject.getJSONArray("items")
+                    if (itemsArray.length() == 0) {
+                        // have to hit tracks API to fetch liked Songs
+                        fetchingUserLikedSongsData(mAccessToken)
+                        Log.e(
+                            TAG,
+                            "onSuccessPlaylistsResponse No Playlist found = ${itemsArray.length()}"
+                        )
+                    } else {
+                        Log.i(
+                            TAG,
+                            "onSuccessPlaylistsResponse Playlist found = ${itemsArray.length()}"
+                        )
+                        parsePlaylistJSONData(rootObject)
+                    }
                 } catch (e: JSONException) {
                     e.printStackTrace()
                 }
             }
         })
+    }
+
+    private fun fetchingUserLikedSongsData(mAccessToken: String) {
+        if (mAccessToken.isEmpty()) {
+            val snackbar: Snackbar = Snackbar.make(
+                findViewById(R.id.login_activity),
+                R.string.warning_need_token,
+                Snackbar.LENGTH_INDEFINITE
+            )
+            snackbar.view.setBackgroundColor(ContextCompat.getColor(this, R.color.colorPrimary))
+            snackbar.show()
+            return
+        }
+        val request = Request.Builder()
+            .url("https://api.spotify.com/v1/me/tracks")
+            .addHeader("Authorization", "Bearer $mAccessToken")
+            .build()
+        if (mCallUserFavorite != null) {
+            mCallUserFavorite?.cancel()
+        }
+        mCallUserFavorite = mOkHttpClient!!.newCall(request)
+        mCallUserFavorite?.enqueue(object : Callback {
+            override fun onFailure(call: Call?, e: IOException) {
+                e.printStackTrace()
+            }
+
+            @Throws(IOException::class)
+            override fun onResponse(call: Call?, response: Response) {
+                try {
+                    val rootObject = JSONObject(response.body()!!.string())
+                    Log.i(TAG, "onSuccessLikedSongsResponse = $rootObject")
+                    val itemsArray: JSONArray = rootObject.getJSONArray("items")
+                    if (itemsArray.length() == 0) {
+                        Log.e(
+                            TAG,
+                            "onSuccessLikedSongsResponse No Songs found = ${itemsArray.length()}"
+                        )
+                    } else {
+                        Log.i(
+                            TAG,
+                            "onSuccessLikedSongsResponse Songs found = ${itemsArray.length()}"
+                        )
+                        parseLikedSongsData(rootObject)
+                    }
+                } catch (e: JSONException) {
+                    e.printStackTrace()
+                }
+            }
+        })
+    }
+
+    private fun parseLikedSongsData(rootObject: JSONObject) {
+        val hrefString = rootObject.getString("href").toString()
+        var imageAlbumURI = ""
+        var trackName = ""
+        var trackPreviewSoundLink = ""
+        var trackURI = ""
+        var artistName = ""
+        val itemsArray: JSONArray = rootObject.getJSONArray("items")
+        for (i in 0 until itemsArray.length()) {
+            val itemsObj: JSONObject =
+                itemsArray.getJSONObject(i) // we can change it to 0 for default
+
+            val tracksObj: JSONObject = itemsObj.getJSONObject("track")
+            val albumObj: JSONObject = tracksObj.getJSONObject("album")
+            val imagesArray: JSONArray = albumObj.getJSONArray("images")
+            for (j in 0 until imagesArray.length()) {
+                val imagesObj: JSONObject =
+                    imagesArray.getJSONObject(1) // getting image size of 300 x 300
+                imageAlbumURI = imagesObj.getString("url")
+            }
+            trackName = tracksObj.getString("name")
+            trackPreviewSoundLink = tracksObj.getString("preview_url")
+            trackURI = tracksObj.getString("uri")
+            artistName = albumObj.getJSONArray("artists").getJSONObject(0).getString("name")
+
+        }
+        Log.i(TAG, "parseLikedSongsData = $hrefString\n$imageAlbumURI\n$trackName\n$trackPreviewSoundLink\n$trackURI\n$artistName")
     }
 
     private fun parsePlaylistJSONData(rootObject: JSONObject) {
@@ -136,7 +229,7 @@ class LoginActivity : AppCompatActivity() {
             playlistURI = itemsObj.getString("uri")
         }
 
-        Log.i(TAG, "playList_parsedData = $hrefString\n$extLinkString\n$playListName\n$playlistURI")
+        Log.i(TAG, "parsePlaylistJSONData = $hrefString\n$extLinkString\n$playListName\n$playlistURI")
 
     }
 
